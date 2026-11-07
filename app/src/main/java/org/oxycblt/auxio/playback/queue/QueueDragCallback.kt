@@ -39,6 +39,10 @@ class QueueDragCallback(private val queueModel: QueueViewModel) : MaterialDragCa
             target.bindingAdapterPosition,
         )
 
+    // Swiping to delete conflicts with the home ViewPager, so only enable it in edit mode.
+    // Dragging is handled separately and remains enabled.
+    override fun canSwipe(viewHolder: RecyclerView.ViewHolder) = queueModel.isEditing.value
+
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         queueModel.removeQueueDataItem(viewHolder.bindingAdapterPosition)
     }

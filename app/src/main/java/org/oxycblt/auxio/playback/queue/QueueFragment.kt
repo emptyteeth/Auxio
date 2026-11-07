@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.min
+import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.FragmentQueueBinding
 import org.oxycblt.auxio.list.EditClickListListener
 import org.oxycblt.auxio.music.MusicViewModel
@@ -65,6 +66,7 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
                 }
         }
 
+        binding.queueEdit.setOnClickListener { queueModel.toggleEditing() }
         binding.queueClear.setOnClickListener { queueModel.clearQueue() }
         binding.queueSave.setOnClickListener {
             val songs = queueModel.queue.value
@@ -94,6 +96,7 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
             playbackModel.isPlaying,
             ::updateQueue,
         )
+        collectImmediately(queueModel.isEditing, ::updateEditing)
     }
 
     override fun onDestroyBinding(binding: FragmentQueueBinding) {
@@ -111,6 +114,13 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
 
     override fun onPickUp(viewHolder: RecyclerView.ViewHolder) {
         requireNotNull(touchHelper) { "ItemTouchHelper was not available" }.startDrag(viewHolder)
+    }
+
+    private fun updateEditing(isEditing: Boolean) {
+        requireBinding().queueEdit.apply {
+            setText(if (isEditing) R.string.lbl_done else R.string.lbl_edit)
+            setIconResource(if (isEditing) R.drawable.ic_check_24 else R.drawable.ic_edit_24)
+        }
     }
 
     private fun updateDivider() {

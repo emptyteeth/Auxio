@@ -17,6 +17,14 @@
         android:paddingVertical="@dimen/spacing_tiny">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/queue_edit"
+            style="@style/Widget.Auxio.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lbl_edit"
+            app:icon="@drawable/ic_edit_24" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/queue_clear"
             style="@style/Widget.Auxio.Button.TextButton"
             android:layout_width="wrap_content"

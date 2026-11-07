@@ -77,13 +77,24 @@ abstract class MaterialDragCallback : ItemTouchHelper.Callback() {
         viewHolder: RecyclerView.ViewHolder,
     ) =
         if (viewHolder is ViewHolder && viewHolder.enabled) {
-            makeFlag(
-                ItemTouchHelper.ACTION_STATE_DRAG,
-                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-            ) or makeFlag(ItemTouchHelper.ACTION_STATE_SWIPE, ItemTouchHelper.START)
+            val drag =
+                makeFlag(
+                    ItemTouchHelper.ACTION_STATE_DRAG,
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                )
+            val swipe =
+                if (canSwipe(viewHolder)) {
+                    makeFlag(ItemTouchHelper.ACTION_STATE_SWIPE, ItemTouchHelper.START)
+                } else {
+                    0
+                }
+            drag or swipe
         } else {
             0
         }
+
+    /** Whether the given [ViewHolder] can be swiped away right now. */
+    protected open fun canSwipe(viewHolder: RecyclerView.ViewHolder) = true
 
     override fun interpolateOutOfBoundsScroll(
         recyclerView: RecyclerView,

@@ -98,6 +98,7 @@
     <string name="lbl_delete">Delete</string>
     <string name="lbl_confirm_delete_playlist">Delete playlist?</string>
     <string name="lbl_edit">Edit</string>
+    <string name="lbl_done">Done</string>
 
     <!-- Search for music -->
     <string name="lbl_search">Search</string>

@@ -57,6 +57,11 @@ class QueueViewModel @Inject constructor(private val playbackManager: PlaybackSt
     val index: StateFlow<Int>
         field = MutableStateFlow(playbackManager.index)
 
+    private val _isEditing = MutableStateFlow(false)
+
+    /** Whether queue items can be swiped away right now. */
+    val isEditing: StateFlow<Boolean> = _isEditing
+
     init {
         playbackManager.addListener(this)
     }
@@ -132,6 +137,11 @@ class QueueViewModel @Inject constructor(private val playbackManager: PlaybackSt
         }
         L.d("Removing item $adapterIndex in queue")
         playbackManager.removeQueueItem(adapterIndex)
+    }
+
+    /** Toggle whether queue items can be swiped away. */
+    fun toggleEditing() {
+        _isEditing.value = !_isEditing.value
     }
 
     /** Clear the entire queue and stop playback. */
