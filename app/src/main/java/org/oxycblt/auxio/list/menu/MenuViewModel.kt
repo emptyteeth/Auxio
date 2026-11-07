@@ -67,6 +67,7 @@ class MenuViewModel @Inject constructor(private val musicRepository: MusicReposi
             is Menu.ForGenre.Parcel -> unpackGenreParcel(parcel)
             is Menu.ForPlaylist.Parcel -> unpackPlaylistParcel(parcel)
             is Menu.ForSelection.Parcel -> unpackSelectionParcel(parcel)
+            is Menu.ForFolder.Parcel -> unpackFolderParcel(parcel)
         }
 
     private fun unpackSongParcel(parcel: Menu.ForSong.Parcel): Menu.ForSong? {
@@ -100,5 +101,14 @@ class MenuViewModel @Inject constructor(private val musicRepository: MusicReposi
         val library = musicRepository.library ?: return null
         val songs = parcel.songUids.mapNotNull(library::findSong)
         return Menu.ForSelection(parcel.res, songs)
+    }
+
+    private fun unpackFolderParcel(parcel: Menu.ForFolder.Parcel): Menu.ForFolder? {
+        val library = musicRepository.library ?: return null
+        val songs = parcel.songUids.mapNotNull(library::findSong)
+        if (songs.isEmpty()) {
+            return null
+        }
+        return Menu.ForFolder(parcel.res, parcel.name, parcel.path, songs)
     }
 }

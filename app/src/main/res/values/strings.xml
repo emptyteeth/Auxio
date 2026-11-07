@@ -389,6 +389,7 @@
     <string name="desc_genre_image">Genre image for %s</string>
     <string name="desc_playlist_image">Playlist image for %s</string>
     <string name="desc_selection_image">Selection image</string>
+    <string name="desc_folder_image">Folder image</string>
 
 
     <!-- Default Namespace | Placeholder values -->

@@ -97,6 +97,22 @@ class FolderViewModel @Inject constructor(private val musicRepository: MusicRepo
         return true
     }
 
+    /**
+     * Get the [Song]s contained in the given directory and all of its subdirectories.
+     *
+     * @param directory The directory to get the [Song]s for.
+     * @return The [Song]s contained in the directory, sorted by name.
+     */
+    fun songsIn(directory: Path): List<Song> {
+        val songs = musicRepository.library?.songs ?: return emptyList()
+        return songs
+            .filter {
+                it.path.volume == directory.volume &&
+                    directory.components.contains(it.path.components)
+            }
+            .sortedWith(compareBy { it.name })
+    }
+
     private fun rebuild() {
         val songs = musicRepository.library?.songs ?: emptyList()
         val current = _path.value

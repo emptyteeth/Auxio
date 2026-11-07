@@ -132,6 +132,18 @@ class FolderListFragment : ViewBindingFragment<FragmentHomeListBinding>() {
         folderModel.navigateTo(up.path)
     }
 
+    private fun openFolderMenu(directory: FolderItem.Directory) {
+        val context = requireContext()
+        val name = directory.path.name ?: directory.path.volume.resolveName(context)
+        val path = directory.path.resolve(context)
+        val songs = folderModel.songsIn(directory.path)
+        if (songs.isEmpty()) {
+            L.w("No songs to show a menu for in ${directory.path}")
+            return
+        }
+        listModel.openMenu(R.menu.folder, name, path, songs)
+    }
+
     private inner class FolderAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private var items = listOf<FolderItem>()
 
@@ -185,7 +197,7 @@ class FolderListFragment : ViewBindingFragment<FragmentHomeListBinding>() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             when (val item = items[position]) {
                 is FolderItem.Directory -> {
-                    (holder as DirectoryViewHolder).bind(item, ::openDirectory)
+                    (holder as DirectoryViewHolder).bind(item, ::openDirectory, ::openFolderMenu)
                 }
                 is FolderItem.Track -> {
                     (holder as SongViewHolder).bind(item.song, songListener)
@@ -199,19 +211,26 @@ class FolderListFragment : ViewBindingFragment<FragmentHomeListBinding>() {
 
     private class DirectoryViewHolder(private val binding: ItemFolderBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(directory: FolderItem.Directory, onClick: (FolderItem.Directory) -> Unit) {
+        fun bind(
+            directory: FolderItem.Directory,
+            onClick: (FolderItem.Directory) -> Unit,
+            onMenu: (FolderItem.Directory) -> Unit,
+        ) {
             val context = binding.context
             binding.folderName.text =
                 directory.path.name ?: directory.path.volume.resolveName(context)
             binding.folderInfo.isVisible = true
             binding.folderInfo.text =
                 context.getPlural(R.plurals.fmt_song_count, directory.songCount)
+            binding.folderMenu.isVisible = true
             binding.root.setOnClickListener { onClick(directory) }
+            binding.folderMenu.setOnClickListener { onMenu(directory) }
         }
 
         fun bindUp(up: FolderItem.Up, onClick: (FolderItem.Up) -> Unit) {
             binding.folderName.text = binding.context.getString(R.string.lbl_parent_folder)
             binding.folderInfo.isVisible = false
+            binding.folderMenu.isVisible = false
             binding.root.setOnClickListener { onClick(up) }
         }
     }

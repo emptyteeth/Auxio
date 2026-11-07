@@ -461,6 +461,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 is Menu.ForGenre -> HomeFragmentDirections.openGenreMenu(menu.parcel)
                 is Menu.ForPlaylist -> HomeFragmentDirections.openPlaylistMenu(menu.parcel)
                 is Menu.ForSelection -> HomeFragmentDirections.openSelectionMenu(menu.parcel)
+                is Menu.ForFolder -> HomeFragmentDirections.openFolderMenu(menu.parcel)
             }
         findNavController().navigateSafe(directions)
     }

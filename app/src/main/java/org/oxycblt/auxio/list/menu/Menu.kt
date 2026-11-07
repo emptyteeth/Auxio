@@ -106,4 +106,30 @@ sealed interface Menu {
 
         @Parcelize data class Parcel(val res: Int, val songUids: List<Music.UID>) : Menu.Parcel
     }
+
+    /**
+     * Navigate to a folder menu dialog.
+     *
+     * @param res The menu resource to inflate.
+     * @param name The name of the folder.
+     * @param path The resolved path of the folder, for display purposes.
+     * @param songs The [Song]s contained in the folder.
+     */
+    class ForFolder(
+        @MenuRes override val res: Int,
+        val name: String,
+        val path: String,
+        val songs: List<Song>,
+    ) : Menu {
+        override val parcel: Parcel
+            get() = Parcel(res, name, path, songs.map { it.uid })
+
+        @Parcelize
+        data class Parcel(
+            val res: Int,
+            val name: String,
+            val path: String,
+            val songUids: List<Music.UID>,
+        ) : Menu.Parcel
+    }
 }

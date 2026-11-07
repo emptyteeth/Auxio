@@ -300,6 +300,7 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
                 is Menu.ForGenre -> SearchFragmentDirections.openGenreMenu(menu.parcel)
                 is Menu.ForPlaylist -> SearchFragmentDirections.openPlaylistMenu(menu.parcel)
                 is Menu.ForSelection -> SearchFragmentDirections.openSelectionMenu(menu.parcel)
+                is Menu.ForFolder -> error("Unexpected menu $menu")
             }
         findNavController().navigateSafe(directions)
         // Keyboard is no longer needed.

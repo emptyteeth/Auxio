@@ -215,6 +215,20 @@ constructor(private val listSettings: ListSettings, private val musicRepository:
         openImpl(Menu.ForSelection(menuRes, songs))
     }
 
+    /**
+     * Open a menu for a folder. This is not a popup menu, instead actually a dialog of menu options
+     * with additional information.
+     *
+     * @param menuRes The resource of the menu to use.
+     * @param name The name of the folder.
+     * @param path The resolved path of the folder, for display purposes.
+     * @param songs The [Song]s contained in the folder.
+     */
+    fun openMenu(@MenuRes menuRes: Int, name: String, path: String, songs: List<Song>) {
+        L.d("Opening menu for folder $name")
+        openImpl(Menu.ForFolder(menuRes, name, path, songs))
+    }
+
     private fun openImpl(menu: Menu) {
         val existing = _menu.flow.value
         if (existing != null) {
