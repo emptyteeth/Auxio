@@ -31,7 +31,6 @@ import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collectImmediately
-import org.oxycblt.auxio.util.showToast
 import org.oxycblt.musikr.Song
 import timber.log.Timber as L
 
@@ -151,12 +150,7 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
                 binding.playbackSecondaryAction.apply {
                     if (tag != actionMode) {
                         contentDescription = getString(R.string.desc_shuffle)
-                        setOnClickListener {
-                            val next = playbackModel.cycleShuffleState()
-                            if (next == ShuffleState.RANDOM) {
-                                requireContext().showToast(R.string.lng_shuffle_random)
-                            }
-                        }
+                        setOnClickListener { playbackModel.cycleShuffleState() }
                         tag = actionMode
                     }
                     setIconResource(shuffleState.icon)

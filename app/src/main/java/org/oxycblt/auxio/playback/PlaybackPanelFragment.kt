@@ -167,12 +167,7 @@ class PlaybackPanelFragment :
             setOnClickListener { playbackModel.togglePlaying() }
         }
         binding.playbackSkipNext.setOnClickListener { playbackModel.next() }
-        binding.playbackShuffle.setOnClickListener {
-            val next = playbackModel.cycleShuffleState()
-            if (next == ShuffleState.RANDOM) {
-                requireContext().showToast(R.string.lng_shuffle_random)
-            }
-        }
+        binding.playbackShuffle.setOnClickListener { playbackModel.cycleShuffleState() }
         binding.playbackMore?.setOnClickListener {
             playbackModel.song.value?.let {
                 listModel.openMenu(R.menu.playback_song, it, PlaySong.ByItself)

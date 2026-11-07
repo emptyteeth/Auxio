@@ -190,6 +190,9 @@ class MainFragment :
 
         binding.playbackSheet.elevation = 0f
 
+        // BottomSheetDragHandleView shows a "Drag handle" tooltip on long-press by default.
+        binding.queueHandle?.let { ViewCompat.setTooltipText(it, null) }
+
         binding.mainScrim.setOnClickListener { binding.homeNewPlaylistFab.close() }
         binding.sheetScrim.setOnClickListener { binding.homeNewPlaylistFab.close() }
         binding.homeShuffleFab.setOnClickListener { playbackModel.shuffleAll() }

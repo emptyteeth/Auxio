@@ -130,7 +130,7 @@
     <string name="lbl_queue_add">Add to queue</string>
     <string name="lbl_queue_replace">Replace queue</string>
     <string name="lbl_clear_queue">Clear</string>
-    <string name="lbl_save_queue">Save to playlist</string>
+    <string name="lbl_save_queue">Save</string>
 
     <string name="lbl_playlist_add">Add to playlist</string>
 
@@ -203,7 +203,6 @@
     <string name="lng_observing">Monitoring your music library for changes…</string>
     <string name="lng_queue_added">Added to queue</string>
     <string name="lng_queue_replaced">Queue replaced</string>
-    <string name="lng_shuffle_random">Random next: a random song follows every track (Repeat All locked)</string>
     <string name="lng_empty_queue">Queue is empty</string>
     <string name="lng_empty_folders">No music folders found</string>
     <string name="lng_play_next">Song will play next</string>
