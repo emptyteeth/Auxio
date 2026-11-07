@@ -83,6 +83,9 @@
 
     <string name="lbl_playlist">Playlist</string>
     <string name="lbl_playlists">Playlists</string>
+    <string name="lbl_folder">Folder</string>
+    <string name="lbl_folders">Folders</string>
+    <string name="lbl_parent_folder">Parent folder</string>
     <string name="lbl_new_playlist">New playlist</string>
     <string name="lbl_empty_playlist">Empty playlist</string>
     <string name="lbl_imported_playlist">Imported playlist</string>
@@ -125,6 +128,9 @@
     <string name="lbl_queue">Queue</string>
     <string name="lbl_play_next">Play next</string>
     <string name="lbl_queue_add">Add to queue</string>
+    <string name="lbl_queue_replace">Replace queue</string>
+    <string name="lbl_clear_queue">Clear</string>
+    <string name="lbl_save_queue">Save to playlist</string>
 
     <string name="lbl_playlist_add">Add to playlist</string>
 
@@ -196,6 +202,9 @@
     <string name="lng_indexing">Loading your music library…</string>
     <string name="lng_observing">Monitoring your music library for changes…</string>
     <string name="lng_queue_added">Added to queue</string>
+    <string name="lng_queue_replaced">Queue replaced</string>
+    <string name="lng_empty_queue">Queue is empty</string>
+    <string name="lng_empty_folders">No music folders found</string>
     <string name="lng_play_next">Song will play next</string>
     <string name="lng_playlist_created">Playlist created</string>
     <string name="lng_playlist_imported">Playlist imported</string>
@@ -242,8 +251,8 @@
     <string name="set_personalize">Personalize</string>
     <string name="set_personalize_desc">Customize UI controls and behavior</string>
     <string name="set_display">Display</string>
-    <string name="set_lib_tabs">Library tabs</string>
-    <string name="set_lib_tabs_desc">Change visibility and order of library tabs</string>
+    <string name="set_lib_tabs">Home tabs</string>
+    <string name="set_lib_tabs_desc">Change visibility and order of home tabs</string>
     <!-- Skip to next (song) -->
     <string name="set_bar_action">Custom playback bar action</string>
     <string name="set_action_mode_next">Skip to next</string>

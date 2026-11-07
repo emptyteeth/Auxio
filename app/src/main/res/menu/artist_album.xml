@@ -21,6 +21,10 @@
         android:icon="@drawable/ic_queue_add_24"
         android:title="@string/lbl_queue_add" />
     <item
+        android:id="@+id/action_queue_replace"
+        android:icon="@drawable/ic_queue_add_24"
+        android:title="@string/lbl_queue_replace" />
+    <item
         android:id="@+id/action_playlist_add"
         android:icon="@drawable/ic_playlist_add_24"
         android:title="@string/lbl_playlist_add" />

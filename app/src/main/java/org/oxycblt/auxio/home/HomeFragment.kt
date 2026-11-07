@@ -44,21 +44,23 @@ import org.oxycblt.auxio.detail.DetailViewModel
 import org.oxycblt.auxio.detail.Show
 import org.oxycblt.auxio.home.list.AlbumListFragment
 import org.oxycblt.auxio.home.list.ArtistListFragment
+import org.oxycblt.auxio.home.list.FolderListFragment
 import org.oxycblt.auxio.home.list.GenreListFragment
 import org.oxycblt.auxio.home.list.PlaylistListFragment
 import org.oxycblt.auxio.home.list.SongListFragment
+import org.oxycblt.auxio.home.tabs.HomeTab
 import org.oxycblt.auxio.home.tabs.NamedTabStrategy
 import org.oxycblt.auxio.home.tabs.Tab
 import org.oxycblt.auxio.list.ListViewModel
 import org.oxycblt.auxio.list.SelectionFragment
 import org.oxycblt.auxio.list.menu.Menu
 import org.oxycblt.auxio.music.IndexingState
-import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.music.PlaylistDecision
 import org.oxycblt.auxio.music.PlaylistMessage
 import org.oxycblt.auxio.playback.PlaybackDecision
 import org.oxycblt.auxio.playback.PlaybackViewModel
+import org.oxycblt.auxio.playback.queue.QueueFragment
 import org.oxycblt.auxio.ui.FadingToolbarOffsetListener
 import org.oxycblt.auxio.util.collect
 import org.oxycblt.auxio.util.collectImmediately
@@ -209,13 +211,18 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 // Junk click event when opening the menu
                 val directions =
                     when (homeModel.currentTabType.value) {
-                        MusicType.SONGS -> HomeFragmentDirections.sortSongs()
-                        MusicType.ALBUMS -> HomeFragmentDirections.sortAlbums()
-                        MusicType.ARTISTS -> HomeFragmentDirections.sortArtists()
-                        MusicType.GENRES -> HomeFragmentDirections.sortGenres()
-                        MusicType.PLAYLISTS -> HomeFragmentDirections.sortPlaylists()
+                        HomeTab.SONGS -> HomeFragmentDirections.sortSongs()
+                        HomeTab.ALBUMS -> HomeFragmentDirections.sortAlbums()
+                        HomeTab.ARTISTS -> HomeFragmentDirections.sortArtists()
+                        HomeTab.GENRES -> HomeFragmentDirections.sortGenres()
+                        HomeTab.PLAYLISTS -> HomeFragmentDirections.sortPlaylists()
+                        // These tabs have no sort configuration.
+                        HomeTab.FOLDERS,
+                        HomeTab.QUEUE -> null
                     }
-                findNavController().navigateSafe(directions)
+                if (directions != null) {
+                    findNavController().navigateSafe(directions)
+                }
                 true
             }
             else -> {
@@ -253,7 +260,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             .attach()
     }
 
-    private fun updateCurrentTab(tabType: MusicType) {
+    private fun updateCurrentTab(tabType: HomeTab) {
         val binding = requireBinding()
 
         // Update the scrolling view in AppBarLayout to align with the current tab's
@@ -261,12 +268,18 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         // goes between different tabs.
         binding.homeAppbar.liftOnScrollTargetViewId =
             when (tabType) {
-                MusicType.SONGS -> R.id.home_song_recycler
-                MusicType.ALBUMS -> R.id.home_album_recycler
-                MusicType.ARTISTS -> R.id.home_artist_recycler
-                MusicType.GENRES -> R.id.home_genre_recycler
-                MusicType.PLAYLISTS -> R.id.home_playlist_recycler
+                HomeTab.SONGS -> R.id.home_song_recycler
+                HomeTab.ALBUMS -> R.id.home_album_recycler
+                HomeTab.ARTISTS -> R.id.home_artist_recycler
+                HomeTab.GENRES -> R.id.home_genre_recycler
+                HomeTab.PLAYLISTS -> R.id.home_playlist_recycler
+                HomeTab.FOLDERS -> R.id.home_folder_recycler
+                HomeTab.QUEUE -> R.id.queue_recycler
             }
+
+        // Folders and the queue cannot be sorted, so hide the sort action for them.
+        binding.homeNormalToolbar.menu.findItem(R.id.action_sort)?.isVisible =
+            tabType != HomeTab.FOLDERS && tabType != HomeTab.QUEUE
     }
 
     private fun handleRecreate(recreate: Unit?) {
@@ -475,7 +488,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
      *   [FragmentStateAdapter].
      */
     private class HomePagerAdapter(
-        private val tabs: List<MusicType>,
+        private val tabs: List<HomeTab>,
         fragmentManager: FragmentManager,
         lifecycleOwner: LifecycleOwner,
     ) : FragmentStateAdapter(fragmentManager, lifecycleOwner.lifecycle) {
@@ -483,11 +496,13 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
         override fun createFragment(position: Int): Fragment =
             when (tabs[position]) {
-                MusicType.SONGS -> SongListFragment()
-                MusicType.ALBUMS -> AlbumListFragment()
-                MusicType.ARTISTS -> ArtistListFragment()
-                MusicType.GENRES -> GenreListFragment()
-                MusicType.PLAYLISTS -> PlaylistListFragment()
+                HomeTab.SONGS -> SongListFragment()
+                HomeTab.ALBUMS -> AlbumListFragment()
+                HomeTab.ARTISTS -> ArtistListFragment()
+                HomeTab.GENRES -> GenreListFragment()
+                HomeTab.PLAYLISTS -> PlaylistListFragment()
+                HomeTab.FOLDERS -> FolderListFragment()
+                HomeTab.QUEUE -> QueueFragment()
             }
     }
 }

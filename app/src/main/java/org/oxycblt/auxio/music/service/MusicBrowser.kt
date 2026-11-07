@@ -26,6 +26,7 @@ import org.oxycblt.auxio.R
 import org.oxycblt.auxio.detail.DetailGenerator
 import org.oxycblt.auxio.detail.DetailSection
 import org.oxycblt.auxio.home.HomeGenerator
+import org.oxycblt.auxio.home.tabs.HomeTab
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
 import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.auxio.music.MusicType
@@ -191,7 +192,8 @@ private constructor(
     private fun getCategoryMediaItems(node: TabNode, maxTabs: Int) =
         when (node) {
             is TabNode.Root -> {
-                val tabs = homeGenerator.tabs()
+                // Android Auto can only represent library-backed tabs.
+                val tabs = homeGenerator.tabs().mapNotNull { it.toMusicType() }
                 if (maxTabs < tabs.size) {
                     tabs.take(maxTabs - 1).map { TabNode.Home(it).toMediaItem(context) } +
                         TabNode.More.toMediaItem(context)
@@ -200,7 +202,11 @@ private constructor(
                 }
             }
             is TabNode.More -> {
-                homeGenerator.tabs().drop(maxTabs - 1).map { TabNode.Home(it).toMediaItem(context) }
+                homeGenerator
+                    .tabs()
+                    .mapNotNull { it.toMusicType() }
+                    .drop(maxTabs - 1)
+                    .map { TabNode.Home(it).toMediaItem(context) }
             }
             is TabNode.Home ->
                 // homeGenerator returns emptyLists
@@ -211,6 +217,22 @@ private constructor(
                     MusicType.GENRES -> homeGenerator.genres().map { it.toMediaItem(context) }
                     MusicType.PLAYLISTS -> homeGenerator.playlists().map { it.toMediaItem(context) }
                 }
+        }
+
+    /**
+     * Converts a [HomeTab] into the [MusicType] it is backed by, or null if the tab does not
+     * correspond to a library collection.
+     */
+    private fun HomeTab.toMusicType(): MusicType? =
+        when (this) {
+            HomeTab.SONGS -> MusicType.SONGS
+            HomeTab.ALBUMS -> MusicType.ALBUMS
+            HomeTab.ARTISTS -> MusicType.ARTISTS
+            HomeTab.GENRES -> MusicType.GENRES
+            HomeTab.PLAYLISTS -> MusicType.PLAYLISTS
+            // Folders and the queue are not exposed to Android Auto.
+            HomeTab.FOLDERS,
+            HomeTab.QUEUE -> null
         }
 
     private fun getChildMediaItems(uid: Music.UID): List<MediaItem>? {

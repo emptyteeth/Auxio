@@ -21,6 +21,7 @@ package org.oxycblt.auxio.playback.queue
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.isInvisible
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -30,6 +31,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.min
 import org.oxycblt.auxio.databinding.FragmentQueueBinding
 import org.oxycblt.auxio.list.EditClickListListener
+import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collectImmediately
@@ -45,6 +47,7 @@ import timber.log.Timber as L
 class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickListListener<Song> {
     private val queueModel: QueueViewModel by viewModels()
     private val playbackModel: PlaybackViewModel by activityViewModels()
+    private val musicModel: MusicViewModel by activityViewModels()
     private val queueAdapter = QueueAdapter(this)
     private var touchHelper: ItemTouchHelper? = null
 
@@ -60,6 +63,15 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
                 ItemTouchHelper(QueueDragCallback(queueModel)).also {
                     it.attachToRecyclerView(this)
                 }
+        }
+
+        binding.queueClear.setOnClickListener { queueModel.clearQueue() }
+        binding.queueSave.setOnClickListener {
+            val songs = queueModel.queue.value
+            if (songs.isNotEmpty()) {
+                L.d("Saving queue with ${songs.size} songs to a playlist")
+                musicModel.createPlaylist(songs = songs)
+            }
         }
 
         // Sometimes the scroll can change without the listener being updated, so we also
@@ -114,6 +126,12 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
         val instructions = queueModel.queueInstructions.consume()
         queueAdapter.update(queue, instructions)
         queueAdapter.setPosition(index, isPlaying, instructions == null)
+
+        // Queue actions only make sense when there is something in the queue.
+        val hasQueue = queue.isNotEmpty()
+        binding.queueActions.isVisible = hasQueue
+        binding.queueEmpty.isVisible = !hasQueue
+        binding.queueRecycler.isInvisible = !hasQueue
 
         // If requested, scroll to a new item (occurs when the index moves)
         val scrollTo = queueModel.scrollTo.consume()

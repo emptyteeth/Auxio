@@ -23,8 +23,8 @@ import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import org.oxycblt.auxio.R
+import org.oxycblt.auxio.home.tabs.HomeTab
 import org.oxycblt.auxio.home.tabs.Tab
-import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.settings.Settings
 import org.oxycblt.auxio.util.unlikelyToBeNull
 import timber.log.Timber as L
@@ -73,19 +73,55 @@ class HomeSettingsImpl @Inject constructor(@ApplicationContext context: Context)
         if (sharedPreferences.contains(OLD_KEY_LIB_TABS)) {
             L.d("Migrating tab setting")
             val oldTabs =
-                Tab.fromIntCode(sharedPreferences.getInt(OLD_KEY_LIB_TABS, Tab.SEQUENCE_DEFAULT))
-                    ?: unlikelyToBeNull(Tab.fromIntCode(Tab.SEQUENCE_DEFAULT))
+                Tab.fromIntCodeLegacy(
+                    sharedPreferences.getInt(OLD_KEY_LIB_TABS, Tab.SEQUENCE_DEFAULT_LEGACY)
+                ) ?: unlikelyToBeNull(Tab.fromIntCodeLegacy(Tab.SEQUENCE_DEFAULT_LEGACY))
 
             // The playlist tab is now parsed, but it needs to be made visible.
-            val playlistIndex = oldTabs.indexOfFirst { it.type == MusicType.PLAYLISTS }
+            val playlistIndex = oldTabs.indexOfFirst { it.type == HomeTab.PLAYLISTS }
             check(playlistIndex > -1) // This should exist, otherwise we are in big trouble
-            oldTabs[playlistIndex] = Tab.Visible(MusicType.PLAYLISTS)
+            oldTabs[playlistIndex] = Tab.Visible(HomeTab.PLAYLISTS)
 
             sharedPreferences.edit {
-                putInt(getString(R.string.set_key_home_tabs), Tab.toIntCode(oldTabs))
+                putInt(
+                    getString(R.string.set_key_home_tabs),
+                    Tab.toIntCode(withNewTabs(oldTabs)),
+                )
                 remove(OLD_KEY_LIB_TABS)
             }
         }
+
+        // Migrate the legacy 5-tab sequence to the current 7-tab sequence.
+        if (sharedPreferences.contains(LEGACY_KEY_HOME_TABS)) {
+            L.d("Migrating legacy home tab sequence")
+            val legacyTabs =
+                Tab.fromIntCodeLegacy(
+                    sharedPreferences.getInt(LEGACY_KEY_HOME_TABS, Tab.SEQUENCE_DEFAULT_LEGACY)
+                ) ?: unlikelyToBeNull(Tab.fromIntCodeLegacy(Tab.SEQUENCE_DEFAULT_LEGACY))
+
+            sharedPreferences.edit {
+                putInt(
+                    getString(R.string.set_key_home_tabs),
+                    Tab.toIntCode(withNewTabs(legacyTabs)),
+                )
+                remove(LEGACY_KEY_HOME_TABS)
+            }
+        }
+    }
+
+    /**
+     * Appends the tabs added after the legacy tab sequence was introduced. Existing tabs retain
+     * their visibility and order.
+     */
+    private fun withNewTabs(tabs: Array<Tab>): Array<Tab> {
+        val result = tabs.toMutableList()
+        if (result.none { it.type == HomeTab.FOLDERS }) {
+            result += Tab.Visible(HomeTab.FOLDERS)
+        }
+        if (result.none { it.type == HomeTab.QUEUE }) {
+            result += Tab.Visible(HomeTab.QUEUE)
+        }
+        return result.toTypedArray()
     }
 
     override fun onSettingChanged(key: String, listener: HomeSettings.Listener) {
@@ -103,5 +139,6 @@ class HomeSettingsImpl @Inject constructor(@ApplicationContext context: Context)
 
     companion object {
         const val OLD_KEY_LIB_TABS = "auxio_lib_tabs"
+        const val LEGACY_KEY_HOME_TABS = "auxio_home_tabs"
     }
 }

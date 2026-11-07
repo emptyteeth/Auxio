@@ -163,6 +163,17 @@ interface PlaybackStateManager {
     fun addToQueue(song: Song) = addToQueue(listOf(song))
 
     /**
+     * Replace the entire queue with the given [Song]s. This is equivalent to clearing the queue and
+     * then adding the [Song]s to it.
+     *
+     * @param songs The [Song]s to replace the queue with.
+     */
+    fun replaceQueue(songs: List<Song>)
+
+    /** Clear the entire queue, stopping playback. */
+    fun clearQueue()
+
+    /**
      * Move a [Song] in the queue.
      *
      * @param src The position of the [Song] to move in the queue.
@@ -500,6 +511,25 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
             L.d("Adding ${songs.size} songs to end of queue")
             stateHolder.addToQueue(songs, StateAck.AddToQueue(queue.size, songs.size))
         }
+    }
+
+    @Synchronized
+    override fun replaceQueue(songs: List<Song>) {
+        if (songs.isEmpty()) {
+            L.d("No songs to replace the queue with")
+            return
+        }
+        L.d("Replacing queue with ${songs.size} songs")
+        // A new playback with the given songs has the same effect as clearing the queue and
+        // adding them to it, while also ensuring that the new queue starts playing.
+        play(QueueCommand(songs))
+    }
+
+    @Synchronized
+    override fun clearQueue() {
+        val stateHolder = stateHolder ?: return
+        L.d("Clearing queue")
+        stateHolder.reset(StateAck.NewPlayback)
     }
 
     private class QueueCommand(override val queue: List<Song>) : PlaybackCommand {

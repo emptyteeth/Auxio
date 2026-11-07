@@ -18,29 +18,28 @@
  
 package org.oxycblt.auxio.home.tabs
 
-import org.oxycblt.auxio.music.MusicType
 import timber.log.Timber as L
 
 /**
- * A representation of a library tab suitable for configuration.
+ * A representation of a home tab suitable for configuration.
  *
- * @param type The type of list in the home view this instance corresponds to.
+ * @param type The kind of content shown by this tab.
  * @author Alexander Capehart (OxygenCobalt)
  */
-sealed class Tab(open val type: MusicType) {
+sealed class Tab(open val type: HomeTab) {
     /**
      * A visible tab. This will be visible in the home and tab configuration views.
      *
-     * @param type The type of list in the home view this instance corresponds to.
+     * @param type The kind of content shown by this tab.
      */
-    data class Visible(override val type: MusicType) : Tab(type)
+    data class Visible(override val type: HomeTab) : Tab(type)
 
     /**
      * A visible tab. This will be visible in the tab configuration view, but not in the home view.
      *
-     * @param type The type of list in the home view this instance corresponds to.
+     * @param type The kind of content shown by this tab.
      */
-    data class Invisible(override val type: MusicType) : Tab(type)
+    data class Invisible(override val type: HomeTab) : Tab(type)
 
     companion object {
         // Like other IO-bound datatypes in Auxio, tabs are stored in a binary format. However, tabs
@@ -55,26 +54,28 @@ sealed class Tab(open val type: MusicType) {
         // VTTT
         //
         // Where V is a bit representing the visibility and T is a 3-bit integer representing the
-        // MusicMode for this tab.
+        // HomeTab for this tab.
 
         /** The maximum index that a well-formed tab sequence should be. */
-        const val MAX_SEQUENCE_IDX = 4
+        const val MAX_SEQUENCE_IDX = 6
 
         /**
-         * The default tab sequence, in integer form. This represents a set of four visible tabs
-         * ordered as "Song", "Album", "Artist", "Genre", and "Playlists
+         * The default tab sequence, in integer form. This represents a set of seven visible tabs
+         * ordered as "Songs", "Albums", "Artists", "Genres", "Playlists", "Folders", and "Queue".
          */
-        const val SEQUENCE_DEFAULT = 0b1000_1001_1010_1011_1100
+        const val SEQUENCE_DEFAULT = 0b1000_1001_1010_1011_1100_1101_1110
 
-        /** Maps between the integer code in the tab sequence and it's [MusicType]. */
-        private val MODE_TABLE =
-            arrayOf(
-                MusicType.SONGS,
-                MusicType.ALBUMS,
-                MusicType.ARTISTS,
-                MusicType.GENRES,
-                MusicType.PLAYLISTS,
-            )
+        /**
+         * The default tab sequence in the legacy 5-tab format. Used only when migrating settings
+         * from an older version of Auxio.
+         */
+        const val SEQUENCE_DEFAULT_LEGACY = 0b1000_1001_1010_1011_1100
+
+        /** The maximum index of the legacy 5-tab format. */
+        private const val MAX_SEQUENCE_IDX_LEGACY = 4
+
+        /** Maps between the integer code in the tab sequence and it's [HomeTab]. */
+        private val MODE_TABLE = HomeTab.entries.toTypedArray()
 
         /**
          * Convert an array of [Tab]s into it's integer representation.
@@ -142,6 +143,36 @@ sealed class Tab(open val type: MusicType) {
             // For safety, return null if we have an empty or larger-than-expected tab array.
             if (distinct.isEmpty() || distinct.size < MAX_SEQUENCE_IDX) {
                 L.e("Sequence size was ${distinct.size}, which is invalid")
+                return null
+            }
+
+            return distinct.toTypedArray()
+        }
+
+        /**
+         * Convert a legacy (5-tab) integer representation into it's corresponding array of [Tab]s.
+         * This is only used when migrating settings written by an older version of Auxio.
+         *
+         * @param intCode The legacy integer representation of the [Tab]s.
+         * @return An array of [Tab]s corresponding to the sequence, or null if it was invalid.
+         */
+        fun fromIntCodeLegacy(intCode: Int): Array<Tab>? {
+            val tabs = mutableListOf<Tab>()
+
+            for (shift in (0..MAX_SEQUENCE_IDX_LEGACY * 4).reversed() step 4) {
+                val chunk = intCode.shr(shift) and 0b1111
+                val mode = MODE_TABLE.getOrNull(chunk and 7) ?: continue
+                tabs +=
+                    if (chunk and 1.shl(3) != 0) {
+                        Visible(mode)
+                    } else {
+                        Invisible(mode)
+                    }
+            }
+
+            val distinct = tabs.distinctBy { it.type }
+            if (distinct.size != MAX_SEQUENCE_IDX_LEGACY + 1) {
+                L.e("Legacy sequence size was ${distinct.size}, which is invalid")
                 return null
             }
 

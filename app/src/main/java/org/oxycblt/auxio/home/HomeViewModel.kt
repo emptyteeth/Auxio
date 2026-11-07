@@ -23,6 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.oxycblt.auxio.home.tabs.HomeTab
 import org.oxycblt.auxio.home.tabs.Tab
 import org.oxycblt.auxio.list.ListSettings
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
@@ -126,15 +127,15 @@ constructor(
     private val homeGenerator = homeGeneratorFactory.create(this)
 
     /**
-     * A list of [MusicType] corresponding to the current [Tab] configuration, excluding invisible
+     * A list of [HomeTab] corresponding to the current [Tab] configuration, excluding invisible
      * [Tab]s.
      */
     var currentTabTypes = homeGenerator.tabs()
         private set
 
     private val _currentTabType = MutableStateFlow(currentTabTypes[0])
-    /** The [MusicType] of the currently shown [Tab]. */
-    val currentTabType: StateFlow<MusicType> = _currentTabType
+    /** The [HomeTab] of the currently shown [Tab]. */
+    val currentTabType: StateFlow<HomeTab> = _currentTabType
 
     /**
      * A marker to re-create all library tabs, usually initiated by a settings change. When this

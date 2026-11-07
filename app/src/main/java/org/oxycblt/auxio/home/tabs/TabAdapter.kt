@@ -21,10 +21,8 @@ package org.oxycblt.auxio.home.tabs
 import android.annotation.SuppressLint
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.ItemTabBinding
 import org.oxycblt.auxio.list.EditClickListListener
-import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.util.inflater
 import timber.log.Timber as L
 
@@ -108,15 +106,7 @@ class TabViewHolder private constructor(private val binding: ItemTabBinding) :
         listener.bind(tab, this, dragHandle = binding.tabDragHandle)
         binding.tabCheckBox.apply {
             // Update the CheckBox name to align with the type
-            setText(
-                when (tab.type) {
-                    MusicType.SONGS -> R.string.lbl_songs
-                    MusicType.ALBUMS -> R.string.lbl_albums
-                    MusicType.ARTISTS -> R.string.lbl_artists
-                    MusicType.GENRES -> R.string.lbl_genres
-                    MusicType.PLAYLISTS -> R.string.lbl_playlists
-                }
-            )
+            setText(tab.type.nameRes)
 
             // Unlike in other adapters, we update the checked state alongside
             // the tab data since they are in the same data structure (Tab)

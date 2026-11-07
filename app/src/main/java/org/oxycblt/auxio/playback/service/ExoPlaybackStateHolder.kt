@@ -458,6 +458,7 @@ class ExoPlaybackStateHolder(
     }
 
     override fun reset(ack: StateAck.NewPlayback) {
+        parent = null
         player.setMediaItems(listOf())
         playbackManager.ack(this, ack)
         deferSave()

@@ -19,6 +19,7 @@
 package org.oxycblt.auxio.home
 
 import javax.inject.Inject
+import org.oxycblt.auxio.home.tabs.HomeTab
 import org.oxycblt.auxio.home.tabs.Tab
 import org.oxycblt.auxio.list.ListSettings
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
@@ -48,7 +49,7 @@ interface HomeGenerator {
 
     fun playlists(): List<Playlist>
 
-    fun tabs(): List<MusicType>
+    fun tabs(): List<HomeTab>
 
     interface Invalidator {
         fun invalidateEmpty() {}

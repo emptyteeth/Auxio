@@ -21,6 +21,10 @@
         android:icon="@drawable/ic_queue_add_24"
         android:title="@string/lbl_queue_add" />
     <item
+        android:id="@+id/action_queue_replace"
+        android:icon="@drawable/ic_queue_add_24"
+        android:title="@string/lbl_queue_replace" />
+    <item
         android:id="@+id/action_rename"
         android:icon="@drawable/ic_edit_24"
         android:title="@string/lbl_rename" />

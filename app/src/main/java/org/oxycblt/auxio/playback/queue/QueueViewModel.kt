@@ -133,6 +133,12 @@ class QueueViewModel @Inject constructor(private val playbackManager: PlaybackSt
         playbackManager.removeQueueItem(adapterIndex)
     }
 
+    /** Clear the entire queue and stop playback. */
+    fun clearQueue() {
+        L.d("Clearing queue")
+        playbackManager.clearQueue()
+    }
+
     /**
      * Move a queue item from one index to another index.
      *

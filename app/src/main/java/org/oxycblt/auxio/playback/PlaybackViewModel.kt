@@ -422,6 +422,17 @@ constructor(
         playImpl(commandFactory.songs(songs, ShuffleMode.ON))
     }
 
+    /**
+     * Play a list of [Song]s, starting from a specific [Song] in that list.
+     *
+     * @param songs The [Song]s to play.
+     * @param song The [Song] to start playback from. Must be contained in [songs].
+     */
+    fun play(songs: List<Song>, song: Song) {
+        L.d("Playing ${songs.size} songs starting from $song")
+        playImpl(commandFactory.songs(songs, song, ShuffleMode.OFF))
+    }
+
     private fun playImpl(command: PlaybackCommand?) {
         playbackManager.play(requireNotNull(command) { "Invalid playback parameters" })
     }
@@ -601,6 +612,72 @@ constructor(
     fun addToQueue(songs: List<Song>) {
         L.d("Adding ${songs.size} songs to queue")
         playbackManager.addToQueue(songs)
+    }
+
+    /**
+     * Replace the entire queue with a [Song].
+     *
+     * @param song The [Song] to replace the queue with.
+     */
+    fun replaceQueue(song: Song) {
+        L.d("Replacing queue with $song")
+        playbackManager.replaceQueue(listOf(song))
+    }
+
+    /**
+     * Replace the entire queue with a [Album].
+     *
+     * @param album The [Album] to replace the queue with.
+     */
+    fun replaceQueue(album: Album) {
+        L.d("Replacing queue with $album")
+        playbackManager.replaceQueue(listSettings.albumSongSort.songs(album.songs))
+    }
+
+    /**
+     * Replace the entire queue with a [Artist].
+     *
+     * @param artist The [Artist] to replace the queue with.
+     */
+    fun replaceQueue(artist: Artist) {
+        L.d("Replacing queue with $artist")
+        playbackManager.replaceQueue(listSettings.artistSongSort.songs(artist.songs))
+    }
+
+    /**
+     * Replace the entire queue with a [Genre].
+     *
+     * @param genre The [Genre] to replace the queue with.
+     */
+    fun replaceQueue(genre: Genre) {
+        L.d("Replacing queue with $genre")
+        playbackManager.replaceQueue(listSettings.genreSongSort.songs(genre.songs))
+    }
+
+    /**
+     * Replace the entire queue with a [Playlist].
+     *
+     * @param playlist The [Playlist] to replace the queue with.
+     */
+    fun replaceQueue(playlist: Playlist) {
+        L.d("Replacing queue with $playlist")
+        playbackManager.replaceQueue(playlist.songs)
+    }
+
+    /**
+     * Replace the entire queue with [Song]s.
+     *
+     * @param songs The [Song]s to replace the queue with.
+     */
+    fun replaceQueue(songs: List<Song>) {
+        L.d("Replacing queue with ${songs.size} songs")
+        playbackManager.replaceQueue(songs)
+    }
+
+    /** Clear the entire queue, stopping playback. */
+    fun clearQueue() {
+        L.d("Clearing queue")
+        playbackManager.clearQueue()
     }
 
     // --- STATUS FUNCTIONS ---
