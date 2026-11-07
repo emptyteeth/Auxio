@@ -203,6 +203,7 @@
     <string name="lng_observing">Monitoring your music library for changes…</string>
     <string name="lng_queue_added">Added to queue</string>
     <string name="lng_queue_replaced">Queue replaced</string>
+    <string name="lng_shuffle_random">Random next: a random song follows every track (Repeat All locked)</string>
     <string name="lng_empty_queue">Queue is empty</string>
     <string name="lng_empty_folders">No music folders found</string>
     <string name="lng_play_next">Song will play next</string>
@@ -371,7 +372,7 @@
     <string name="desc_skip_next">Skip to next song</string>
     <string name="desc_skip_prev">Skip to last song</string>
     <string name="desc_change_repeat">Change repeat mode</string>
-    <string name="desc_shuffle">Turn shuffle on or off</string>
+    <string name="desc_shuffle">Change shuffle mode</string>
     <string name="desc_exit">Stop playback</string>
 
     <string name="desc_remove_song">Remove this song</string>

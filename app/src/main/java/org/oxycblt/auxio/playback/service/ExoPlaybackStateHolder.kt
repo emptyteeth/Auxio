@@ -61,6 +61,7 @@ import org.oxycblt.auxio.playback.state.Progression
 import org.oxycblt.auxio.playback.state.RawQueue
 import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.state.ShuffleMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.playback.state.StateAck
 import org.oxycblt.musikr.MusicParent
 import org.oxycblt.musikr.Song
@@ -113,6 +114,9 @@ class ExoPlaybackStateHolder(
     }
 
     override var parent: MusicParent? = null
+        private set
+
+    override var shuffleState = ShuffleState.OFF
         private set
 
     override val progression: Progression
@@ -248,16 +252,23 @@ class ExoPlaybackStateHolder(
 
     override fun newPlayback(command: PlaybackCommand) {
         parent = command.parent
-        player.shuffleModeEnabled = command.shuffled
+        shuffleState = command.shuffleState
+        player.shuffleModeEnabled = shuffleState.isShuffled
         player.setMediaItems(command.queue.map { it.buildMediaItem() })
         val startIndex =
             command.song
                 ?.let { command.queue.indexOf(it) }
                 .also { check(it != -1) { "Start song not in queue" } }
-        if (command.shuffled) {
+        if (shuffleState.isShuffled) {
             player.setShuffleOrder(BetterShuffleOrder(command.queue.size, startIndex ?: -1))
         }
-        val target = startIndex ?: player.currentTimeline.getFirstWindowIndex(command.shuffled)
+        if (shuffleState == ShuffleState.RANDOM) {
+            // Random-next needs the queue to repeat forever.
+            player.repeatMode = Player.REPEAT_MODE_ALL
+            updatePauseOnRepeat()
+        }
+        val target =
+            startIndex ?: player.currentTimeline.getFirstWindowIndex(shuffleState.isShuffled)
         player.seekTo(target, C.TIME_UNSET)
         player.prepare()
         player.play()
@@ -265,13 +276,19 @@ class ExoPlaybackStateHolder(
         deferSave()
     }
 
-    override fun shuffled(shuffled: Boolean) {
-        player.setShuffleModeEnabled(shuffled)
-        if (player.shuffleModeEnabled) {
+    override fun shuffle(state: ShuffleState) {
+        shuffleState = state
+        player.shuffleModeEnabled = state.isShuffled
+        if (state.isShuffled) {
             // Have to manually refresh the shuffle seed and anchor it to the new current songs
             player.setShuffleOrder(
                 BetterShuffleOrder(player.mediaItemCount, player.currentMediaItemIndex)
             )
+        }
+        if (state == ShuffleState.RANDOM) {
+            // Random-next needs the queue to repeat forever.
+            player.repeatMode = Player.REPEAT_MODE_ALL
+            updatePauseOnRepeat()
         }
         playbackManager.ack(this, StateAck.QueueReordered)
         deferSave()
@@ -404,21 +421,30 @@ class ExoPlaybackStateHolder(
         rawQueue: RawQueue,
         positionMs: Long,
         repeatMode: RepeatMode,
+        shuffleState: ShuffleState,
         ack: StateAck.NewPlayback?,
     ) {
         var sendNewPlaybackEvent = false
         var shouldSeek = false
+        this.shuffleState = shuffleState
         if (this.parent != parent) {
             this.parent = parent
             sendNewPlaybackEvent = true
         }
         if (rawQueue != resolveQueue()) {
             player.setMediaItems(rawQueue.heap.map { it.buildMediaItem() })
-            if (rawQueue.isShuffled) {
-                player.shuffleModeEnabled = true
-                player.setShuffleOrder(BetterShuffleOrder(rawQueue.shuffledMapping.toIntArray()))
-            } else {
-                player.shuffleModeEnabled = false
+            player.shuffleModeEnabled = shuffleState.isShuffled
+            if (shuffleState.isShuffled) {
+                if (shuffleState == ShuffleState.RANDOM || rawQueue.shuffledMapping.isEmpty()) {
+                    // Random-next does not restore a fixed order.
+                    player.setShuffleOrder(
+                        BetterShuffleOrder(rawQueue.heap.size, rawQueue.heapIndex)
+                    )
+                } else {
+                    player.setShuffleOrder(
+                        BetterShuffleOrder(rawQueue.shuffledMapping.toIntArray())
+                    )
+                }
             }
             player.seekTo(rawQueue.heapIndex, C.TIME_UNSET)
             player.prepare()
@@ -427,7 +453,21 @@ class ExoPlaybackStateHolder(
             shouldSeek = true
         }
 
+        // Make sure the shuffle mode is applied even when the queue did not change.
+        player.shuffleModeEnabled = shuffleState.isShuffled
+        if (shuffleState == ShuffleState.RANDOM) {
+            player.setShuffleOrder(
+                BetterShuffleOrder(player.mediaItemCount, player.currentMediaItemIndex)
+            )
+        }
+
         repeatMode(repeatMode)
+        if (shuffleState == ShuffleState.RANDOM) {
+            // Random-next needs the queue to repeat forever.
+            player.repeatMode = Player.REPEAT_MODE_ALL
+            updatePauseOnRepeat()
+            playbackManager.ack(this, StateAck.RepeatModeChanged)
+        }
         // See if we differ by more than a second. This allows us to avoid a meaningless seek
         // in the case of a "tight restore" (i.e music was reloaded).
         // In the case that this is a false positive, it's not very percievable (at least compared
@@ -502,6 +542,51 @@ class ExoPlaybackStateHolder(
 
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             playbackManager.ack(this, StateAck.IndexMoved)
+            deferSave()
+        }
+
+        when (shuffleState) {
+            ShuffleState.RANDOM -> {
+                // Generate a fresh order after every transition so the next song is always
+                // chosen randomly from the songs other than the current one.
+                if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
+                    L.d("Random shuffle: generating a new shuffle order")
+                    player.setShuffleOrder(
+                        BetterShuffleOrder(player.mediaItemCount, player.currentMediaItemIndex)
+                    )
+                    playbackManager.ack(this, StateAck.QueueReordered)
+                    deferSave()
+                }
+            }
+            ShuffleState.SHUFFLE -> {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    reshuffleIfCycleComplete()
+                }
+            }
+            ShuffleState.OFF -> {}
+        }
+    }
+
+    /**
+     * Reshuffle the queue when the last song in the current shuffled cycle starts playing, so that
+     * the next repeat of the queue does not use the exact same order again.
+     */
+    private fun reshuffleIfCycleComplete() {
+        if (!player.shuffleModeEnabled || player.repeatMode != Player.REPEAT_MODE_ALL) {
+            return
+        }
+
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty || player.mediaItemCount <= 1) {
+            return
+        }
+
+        if (player.currentMediaItemIndex == timeline.getLastWindowIndex(true)) {
+            L.d("End of shuffled cycle reached, generating a new shuffle order")
+            player.setShuffleOrder(
+                BetterShuffleOrder(player.mediaItemCount, player.currentMediaItemIndex)
+            )
+            playbackManager.ack(this, StateAck.QueueReordered)
             deferSave()
         }
     }

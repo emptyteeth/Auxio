@@ -38,6 +38,9 @@ interface PlaybackStateHolder {
     /** The current [RepeatMode] of the audio player. */
     val repeatMode: RepeatMode
 
+    /** The current [ShuffleState] of the audio player. */
+    val shuffleState: ShuffleState
+
     /** The current [MusicParent] being played from. Null if playing from all songs. */
     val parent: MusicParent?
 
@@ -123,11 +126,11 @@ interface PlaybackStateHolder {
     fun remove(at: Int, ack: StateAck.Remove)
 
     /**
-     * Reorder the queue.
+     * Set the shuffle state of the queue.
      *
-     * @param shuffled Whether the queue should be shuffled.
+     * @param state The new [ShuffleState].
      */
-    fun shuffled(shuffled: Boolean)
+    fun shuffle(state: ShuffleState)
 
     /**
      * Handle a deferred playback action.
@@ -150,6 +153,7 @@ interface PlaybackStateHolder {
         rawQueue: RawQueue,
         positionMs: Long,
         repeatMode: RepeatMode,
+        shuffleState: ShuffleState,
         ack: StateAck.NewPlayback?,
     )
 

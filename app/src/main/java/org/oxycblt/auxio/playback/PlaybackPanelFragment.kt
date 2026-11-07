@@ -44,6 +44,7 @@ import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.queue.QueueViewModel
 import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.playback.ui.StyledSeekBar
 import org.oxycblt.auxio.playback.ui.stepper.Direction
 import org.oxycblt.auxio.playback.ui.stepper.StepperOverlay
@@ -166,7 +167,12 @@ class PlaybackPanelFragment :
             setOnClickListener { playbackModel.togglePlaying() }
         }
         binding.playbackSkipNext.setOnClickListener { playbackModel.next() }
-        binding.playbackShuffle.setOnClickListener { playbackModel.toggleShuffled() }
+        binding.playbackShuffle.setOnClickListener {
+            val next = playbackModel.cycleShuffleState()
+            if (next == ShuffleState.RANDOM) {
+                requireContext().showToast(R.string.lng_shuffle_random)
+            }
+        }
         binding.playbackMore?.setOnClickListener {
             playbackModel.song.value?.let {
                 listModel.openMenu(R.menu.playback_song, it, PlaySong.ByItself)
@@ -177,9 +183,9 @@ class PlaybackPanelFragment :
         collectImmediately(playbackModel.song, ::updateSong)
         collectImmediately(playbackModel.parent, ::updateParent)
         collectImmediately(playbackModel.positionDs, ::updatePosition)
-        collectImmediately(playbackModel.repeatMode, ::updateRepeat)
+        collectImmediately(playbackModel.repeatMode, playbackModel.shuffleState, ::updateRepeat)
         collectImmediately(playbackModel.isPlaying, ::updatePlaying)
-        collectImmediately(playbackModel.isShuffled, ::updateShuffled)
+        collectImmediately(playbackModel.shuffleState, ::updateShuffleState)
         collectImmediately(playbackModel.pagerQueue, ::updatePager)
     }
 
@@ -283,10 +289,12 @@ class PlaybackPanelFragment :
         requireBinding().playbackSeekBar?.positionDs = positionDs
     }
 
-    private fun updateRepeat(repeatMode: RepeatMode) {
+    private fun updateRepeat(repeatMode: RepeatMode, shuffleState: ShuffleState) {
         val repeatButton = requireBinding().playbackRepeat
         repeatButton.isChecked = repeatMode != RepeatMode.NONE
         repeatButton.setIconResource(repeatMode.icon)
+        // Random-next forces and locks Repeat All.
+        repeatButton.isEnabled = shuffleState != ShuffleState.RANDOM
     }
 
     private fun updatePlaying(isPlaying: Boolean) {
@@ -294,8 +302,11 @@ class PlaybackPanelFragment :
         requireBinding().playbackSeekBar?.setWaveEnabled(isPlaying)
     }
 
-    private fun updateShuffled(isShuffled: Boolean) {
-        requireBinding().playbackShuffle.isChecked = isShuffled
+    private fun updateShuffleState(shuffleState: ShuffleState) {
+        requireBinding().playbackShuffle.apply {
+            isChecked = shuffleState.isShuffled
+            setIconResource(shuffleState.icon)
+        }
     }
 
     private fun updatePager(queue: PagerQueue) {

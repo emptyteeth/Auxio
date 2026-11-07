@@ -50,6 +50,7 @@ import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.auxio.playback.state.Progression
 import org.oxycblt.auxio.playback.state.QueueChange
 import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.util.newBroadcastPendingIntent
 import org.oxycblt.auxio.util.newMainPendingIntent
 import org.oxycblt.musikr.MusicParent
@@ -145,11 +146,11 @@ private constructor(
         }
     }
 
-    override fun onQueueReordered(queue: List<Song>, index: Int, isShuffled: Boolean) {
+    override fun onQueueReordered(queue: List<Song>, index: Int, shuffleState: ShuffleState) {
         updateQueue(queue)
         invalidateSessionState()
         mediaSession.setShuffleMode(
-            if (isShuffled) {
+            if (shuffleState.isShuffled) {
                 PlaybackStateCompat.SHUFFLE_MODE_ALL
             } else {
                 PlaybackStateCompat.SHUFFLE_MODE_NONE
@@ -162,11 +163,19 @@ private constructor(
         parent: MusicParent?,
         queue: List<Song>,
         index: Int,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) {
         updateMediaMetadata(playbackManager.currentSong, parent)
         updateQueue(queue)
         invalidateSessionState()
+        mediaSession.setShuffleMode(
+            if (shuffleState.isShuffled) {
+                PlaybackStateCompat.SHUFFLE_MODE_ALL
+            } else {
+                PlaybackStateCompat.SHUFFLE_MODE_NONE
+            }
+        )
+        invalidateNotificationActions()
     }
 
     override fun onProgressionChanged(progression: Progression) {
@@ -352,11 +361,7 @@ private constructor(
             PlaybackStateCompat.CustomAction.Builder(
                     PlaybackActions.ACTION_INVERT_SHUFFLE,
                     context.getString(R.string.desc_shuffle),
-                    if (playbackManager.isShuffled) {
-                        R.drawable.ic_shuffle_on_24
-                    } else {
-                        R.drawable.ic_shuffle_off_24
-                    },
+                    playbackManager.shuffleState.icon,
                 )
                 .build()
         state.addCustomAction(shuffleAction)
@@ -370,7 +375,7 @@ private constructor(
         invalidateSessionState()
 
         notification.updateRepeatMode(playbackManager.repeatMode)
-        notification.updateShuffled(playbackManager.isShuffled)
+        notification.updateShuffleState(playbackManager.shuffleState)
 
         if (!bitmapProvider.isBusy) {
             L.d("Not loading a bitmap, post the notification")
@@ -410,7 +415,7 @@ private class PlaybackNotification(
         addAction(
             buildAction(context, PlaybackActions.ACTION_SKIP_NEXT, R.drawable.ic_skip_next_24)
         )
-        addAction(buildShuffleAction(context, false))
+        addAction(buildShuffleAction(context, ShuffleState.OFF))
 
         setStyle(
             MediaStyle(this).setMediaSession(sessionToken).setShowActionsInCompactView(1, 2, 3)
@@ -465,11 +470,11 @@ private class PlaybackNotification(
     /**
      * Update the secondary action in this notification to show the current shuffle state.
      *
-     * @param isShuffled Whether the queue is currently shuffled or not.
+     * @param shuffleState The current [ShuffleState].
      */
-    fun updateShuffled(isShuffled: Boolean) {
-        L.d("Applying shuffle action: $isShuffled")
-        mActions[4] = buildShuffleAction(context, isShuffled)
+    fun updateShuffleState(shuffleState: ShuffleState) {
+        L.d("Applying shuffle action: $shuffleState")
+        mActions[4] = buildShuffleAction(context, shuffleState)
     }
 
     // --- NOTIFICATION ACTION BUILDERS ---
@@ -496,15 +501,9 @@ private class PlaybackNotification(
 
     private fun buildShuffleAction(
         context: Context,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ): NotificationCompat.Action {
-        val drawableRes =
-            if (isShuffled) {
-                R.drawable.ic_shuffle_on_24
-            } else {
-                R.drawable.ic_shuffle_off_24
-            }
-        return buildAction(context, PlaybackActions.ACTION_INVERT_SHUFFLE, drawableRes)
+        return buildAction(context, PlaybackActions.ACTION_INVERT_SHUFFLE, shuffleState.icon)
     }
 
     private fun buildAction(context: Context, actionName: String, @DrawableRes iconRes: Int) =

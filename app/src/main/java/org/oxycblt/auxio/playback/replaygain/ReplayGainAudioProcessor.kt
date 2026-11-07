@@ -30,6 +30,7 @@ import kotlin.math.pow
 import org.oxycblt.auxio.playback.PlaybackSettings
 import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.auxio.playback.state.QueueChange
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.musikr.Album
 import org.oxycblt.musikr.MusicParent
 import org.oxycblt.musikr.Song
@@ -88,7 +89,7 @@ constructor(
         parent: MusicParent?,
         queue: List<Song>,
         index: Int,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) {
         L.d("New playback started, updating playback information")
         applyReplayGain(playbackManager.currentSong)

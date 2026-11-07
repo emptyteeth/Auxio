@@ -63,8 +63,12 @@ interface PlaybackStateManager {
     /** The index of the currently playing [Song] in the queue. */
     val index: Int
 
+    /** The current [ShuffleState]. */
+    val shuffleState: ShuffleState
+
     /** Whether the queue is shuffled or not. */
     val isShuffled: Boolean
+        get() = shuffleState.isShuffled
 
     /** The audio session ID of the internal player. Null if no internal player exists. */
     val currentAudioSessionId: Int?
@@ -189,11 +193,19 @@ interface PlaybackStateManager {
     fun removeQueueItem(at: Int)
 
     /**
-     * (Re)shuffle or (Re)order this instance.
+     * Set the current [ShuffleState]. Entering [ShuffleState.RANDOM] forces [RepeatMode.ALL] and
+     * locks further repeat mode changes until the shuffle mode is changed again.
      *
-     * @param shuffled Whether to shuffle the queue or not.
+     * @param state The new [ShuffleState].
      */
-    fun shuffled(shuffled: Boolean)
+    fun shuffleState(state: ShuffleState)
+
+    /**
+     * Cycle to the next [ShuffleState] (OFF -> SHUFFLE -> RANDOM -> OFF).
+     *
+     * @return The new [ShuffleState].
+     */
+    fun cycleShuffleState(): ShuffleState
 
     /**
      * Acknowledges that an event has happened that modified the state held by the current
@@ -291,9 +303,9 @@ interface PlaybackStateManager {
          *
          * @param queue The songs of the new queue.
          * @param index The new index of the currently playing [Song].
-         * @param isShuffled Whether the queue is shuffled or not.
+         * @param shuffleState The new [ShuffleState].
          */
-        fun onQueueReordered(queue: List<Song>, index: Int, isShuffled: Boolean) {}
+        fun onQueueReordered(queue: List<Song>, index: Int, shuffleState: ShuffleState) {}
 
         /**
          * Called when a new playback configuration was created.
@@ -301,13 +313,13 @@ interface PlaybackStateManager {
          * @param parent The [MusicParent] item currently being played from.
          * @param queue The queue of [Song]s to play from.
          * @param index The index of the currently playing [Song].
-         * @param isShuffled Whether the queue is shuffled or not.
+         * @param shuffleState The new [ShuffleState].
          */
         fun onNewPlayback(
             parent: MusicParent?,
             queue: List<Song>,
             index: Int,
-            isShuffled: Boolean,
+            shuffleState: ShuffleState,
         ) {}
 
         /**
@@ -333,6 +345,7 @@ interface PlaybackStateManager {
      * @param parent The [MusicParent] item currently being played from.
      * @param positionMs The current position in the currently played song, in ms
      * @param repeatMode The current [RepeatMode].
+     * @param shuffleState The current [ShuffleState].
      */
     data class SavedState(
         val positionMs: Long,
@@ -342,6 +355,7 @@ interface PlaybackStateManager {
         val shuffledMapping: List<Int>,
         val index: Int,
         val songUid: Music.UID,
+        val shuffleState: ShuffleState = ShuffleState.OFF,
     )
 }
 
@@ -352,7 +366,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
         val parent: MusicParent?,
         val queue: List<Song>,
         val index: Int,
-        val isShuffled: Boolean,
+        val shuffleState: ShuffleState,
         val rawQueue: RawQueue,
     )
 
@@ -366,7 +380,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
             parent = null,
             queue = emptyList(),
             index = -1,
-            isShuffled = false,
+            shuffleState = ShuffleState.OFF,
             rawQueue = RawQueue.nil(),
         )
     @Volatile private var stateHolder: PlaybackStateHolder? = null
@@ -391,8 +405,8 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
     override val index
         get() = stateMirror.index
 
-    override val isShuffled
-        get() = stateMirror.isShuffled
+    override val shuffleState
+        get() = stateMirror.shuffleState
 
     override val currentAudioSessionId: Int?
         get() = stateHolder?.audioSessionId
@@ -408,7 +422,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
                 stateMirror.parent,
                 stateMirror.queue,
                 stateMirror.index,
-                stateMirror.isShuffled,
+                stateMirror.shuffleState,
             )
             listener.onProgressionChanged(stateMirror.progression)
             listener.onRepeatModeChanged(stateMirror.repeatMode)
@@ -437,6 +451,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
                 stateMirror.rawQueue,
                 stateMirror.progression.calculateElapsedPositionMs(),
                 stateMirror.repeatMode,
+                stateMirror.shuffleState,
                 null,
             )
         }
@@ -535,7 +550,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
     private class QueueCommand(override val queue: List<Song>) : PlaybackCommand {
         override val song: Song? = null
         override val parent: MusicParent? = null
-        override val shuffled = false
+        override val shuffleState = ShuffleState.OFF
     }
 
     @Synchronized
@@ -553,10 +568,24 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
     }
 
     @Synchronized
-    override fun shuffled(shuffled: Boolean) {
+    override fun shuffleState(state: ShuffleState) {
+        if (state == stateMirror.shuffleState) {
+            return
+        }
         val stateHolder = stateHolder ?: return
-        L.d("Reordering queue [shuffled=$shuffled]")
-        stateHolder.shuffled(shuffled)
+        L.d("Updating shuffle state to $state")
+        // Random-next needs the queue to repeat forever.
+        if (state == ShuffleState.RANDOM) {
+            stateHolder.repeatMode(RepeatMode.ALL)
+        }
+        stateHolder.shuffle(state)
+    }
+
+    @Synchronized
+    override fun cycleShuffleState(): ShuffleState {
+        val next = stateMirror.shuffleState.increment()
+        shuffleState(next)
+        return next
     }
 
     // --- INTERNAL PLAYER FUNCTIONS ---
@@ -592,6 +621,10 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
 
     @Synchronized
     override fun repeatMode(repeatMode: RepeatMode) {
+        if (stateMirror.shuffleState == ShuffleState.RANDOM && repeatMode != RepeatMode.ALL) {
+            L.d("Repeat mode is locked while using random shuffle")
+            return
+        }
         val stateHolder = stateHolder ?: return
         L.d("Updating repeat mode to $repeatMode")
         stateHolder.repeatMode(repeatMode)
@@ -693,14 +726,14 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
                     stateMirror.copy(
                         queue = rawQueue.resolveSongs(),
                         index = rawQueue.resolveIndex(),
-                        isShuffled = rawQueue.isShuffled,
+                        shuffleState = stateHolder.shuffleState,
                         rawQueue = rawQueue,
                     )
                 listeners.forEach {
                     it.onQueueReordered(
                         stateMirror.queue,
                         stateMirror.index,
-                        stateMirror.isShuffled,
+                        stateMirror.shuffleState,
                     )
                 }
             }
@@ -711,7 +744,8 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
                         parent = stateHolder.parent,
                         queue = rawQueue.resolveSongs(),
                         index = rawQueue.resolveIndex(),
-                        isShuffled = rawQueue.isShuffled,
+                        repeatMode = stateHolder.repeatMode,
+                        shuffleState = stateHolder.shuffleState,
                         rawQueue = rawQueue,
                     )
                 listeners.forEach {
@@ -719,9 +753,10 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
                         stateMirror.parent,
                         stateMirror.queue,
                         stateMirror.index,
-                        stateMirror.isShuffled,
+                        stateMirror.shuffleState,
                     )
                 }
+                listeners.forEach { it.onRepeatModeChanged(stateMirror.repeatMode) }
             }
             is StateAck.ProgressionChanged -> {
                 stateMirror = stateMirror.copy(progression = stateHolder.progression)
@@ -750,6 +785,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
             shuffledMapping = stateMirror.rawQueue.shuffledMapping,
             index = stateMirror.index,
             songUid = currentSong.uid,
+            shuffleState = stateMirror.shuffleState,
         )
     }
 
@@ -833,6 +869,7 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
             rawQueue,
             savedState.positionMs,
             savedState.repeatMode,
+            savedState.shuffleState,
             StateAck.NewPlayback,
         )
 

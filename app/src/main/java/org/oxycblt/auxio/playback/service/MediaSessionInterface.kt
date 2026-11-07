@@ -37,6 +37,7 @@ import org.oxycblt.auxio.playback.state.PlaybackCommand
 import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.state.ShuffleMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.musikr.Album
 import org.oxycblt.musikr.Artist
 import org.oxycblt.musikr.Genre
@@ -173,9 +174,15 @@ constructor(
     }
 
     override fun onSetShuffleMode(shuffleMode: Int) {
-        playbackManager.shuffled(
-            shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_ALL ||
-                shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_GROUP
+        playbackManager.shuffleState(
+            if (
+                shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_ALL ||
+                    shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_GROUP
+            ) {
+                ShuffleState.SHUFFLE
+            } else {
+                ShuffleState.OFF
+            }
         )
     }
 

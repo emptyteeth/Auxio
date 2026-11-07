@@ -28,8 +28,10 @@ import org.oxycblt.auxio.detail.DetailViewModel
 import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collectImmediately
+import org.oxycblt.auxio.util.showToast
 import org.oxycblt.musikr.Song
 import timber.log.Timber as L
 
@@ -75,7 +77,7 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
         collectImmediately(
             playbackModel.currentBarAction,
             playbackModel.repeatMode,
-            playbackModel.isShuffled,
+            playbackModel.shuffleState,
             ::updateBarAction,
         )
     }
@@ -113,7 +115,7 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
     private fun updateBarAction(
         actionMode: ActionMode,
         repeatMode: RepeatMode,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) {
         val binding = requireBinding()
         when (actionMode) {
@@ -127,6 +129,7 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
                         isChecked = false
                         tag = actionMode
                     }
+                    isEnabled = true
                 }
             }
             ActionMode.REPEAT -> {
@@ -139,18 +142,26 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
                     }
                     setIconResource(repeatMode.icon)
                     isChecked = repeatMode != RepeatMode.NONE
+                    // Random-next forces and locks Repeat All.
+                    isEnabled = shuffleState != ShuffleState.RANDOM
                 }
             }
             ActionMode.SHUFFLE -> {
                 L.d("Using shuffle action")
                 binding.playbackSecondaryAction.apply {
                     if (tag != actionMode) {
-                        setIconResource(R.drawable.sel_shuffle_state_24)
                         contentDescription = getString(R.string.desc_shuffle)
-                        setOnClickListener { playbackModel.toggleShuffled() }
+                        setOnClickListener {
+                            val next = playbackModel.cycleShuffleState()
+                            if (next == ShuffleState.RANDOM) {
+                                requireContext().showToast(R.string.lng_shuffle_random)
+                            }
+                        }
                         tag = actionMode
                     }
-                    isChecked = isShuffled
+                    setIconResource(shuffleState.icon)
+                    isChecked = shuffleState.isShuffled
+                    isEnabled = true
                 }
             }
         }

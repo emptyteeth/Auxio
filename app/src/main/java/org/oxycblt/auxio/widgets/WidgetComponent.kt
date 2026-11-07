@@ -34,6 +34,7 @@ import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.auxio.playback.state.Progression
 import org.oxycblt.auxio.playback.state.QueueChange
 import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.util.getDimenPixels
 import org.oxycblt.musikr.MusicParent
@@ -166,13 +167,17 @@ private constructor(
         }
     }
 
-    override fun onQueueReordered(queue: List<Song>, index: Int, isShuffled: Boolean) = update()
+    override fun onQueueReordered(
+        queue: List<Song>,
+        index: Int,
+        shuffleState: ShuffleState,
+    ) = update()
 
     override fun onNewPlayback(
         parent: MusicParent?,
         queue: List<Song>,
         index: Int,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) = update()
 
     override fun onProgressionChanged(progression: Progression) = update()

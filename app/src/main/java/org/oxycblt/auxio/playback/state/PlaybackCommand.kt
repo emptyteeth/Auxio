@@ -45,8 +45,11 @@ interface PlaybackCommand {
     val parent: MusicParent?
     /** The queue of [Song]s to play from. * */
     val queue: List<Song>
+    /** The [ShuffleState] to start playback with. * */
+    val shuffleState: ShuffleState
     /** Whether to shuffle or not. * */
     val shuffled: Boolean
+        get() = shuffleState.isShuffled
 
     interface Factory {
         fun song(song: Song, shuffle: ShuffleMode): PlaybackCommand?
@@ -95,11 +98,11 @@ constructor(
         override val song: Song?,
         override val parent: MusicParent?,
         override val queue: List<Song>,
-        override val shuffled: Boolean,
+        override val shuffleState: ShuffleState,
     ) : PlaybackCommand {
         // Only show queue count to reduce memory use
         override fun toString() =
-            "PlaybackCommand(song=$song, parent=$parent, queue=${queue.size} songs, shuffled=$shuffled)"
+            "PlaybackCommand(song=$song, parent=$parent, queue=${queue.size} songs, shuffleState=$shuffleState)"
     }
 
     override fun song(song: Song, shuffle: ShuffleMode) =
@@ -189,13 +192,18 @@ constructor(
         queue: List<Song>,
         shuffle: ShuffleMode,
     ): PlaybackCommand {
-        return PlaybackCommandImpl(song, parent, queue, isShuffled(shuffle))
+        return PlaybackCommandImpl(song, parent, queue, resolveShuffleState(shuffle))
     }
 
-    private fun isShuffled(shuffle: ShuffleMode) =
+    private fun resolveShuffleState(shuffle: ShuffleMode) =
         when (shuffle) {
-            ShuffleMode.ON -> true
-            ShuffleMode.OFF -> false
-            ShuffleMode.IMPLICIT -> playbackSettings.keepShuffle && playbackManager.isShuffled
+            ShuffleMode.ON -> ShuffleState.SHUFFLE
+            ShuffleMode.OFF -> ShuffleState.OFF
+            ShuffleMode.IMPLICIT ->
+                if (playbackSettings.keepShuffle && playbackManager.isShuffled) {
+                    playbackManager.shuffleState
+                } else {
+                    ShuffleState.OFF
+                }
         }
 }

@@ -38,6 +38,7 @@ import org.oxycblt.auxio.playback.state.Progression
 import org.oxycblt.auxio.playback.state.QueueChange
 import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.state.ShuffleMode
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.util.Event
 import org.oxycblt.auxio.util.MutableEvent
 import org.oxycblt.musikr.Album
@@ -86,9 +87,13 @@ constructor(
     val repeatMode: StateFlow<RepeatMode>
         field = MutableStateFlow(RepeatMode.NONE)
 
+    /** The current [ShuffleState] of the queue. */
+    val shuffleState: StateFlow<ShuffleState>
+        field = MutableStateFlow(ShuffleState.OFF)
+
     /** Whether the queue is shuffled or not. */
-    val isShuffled: StateFlow<Boolean>
-        field = MutableStateFlow(false)
+    val isShuffled: Boolean
+        get() = shuffleState.value.isShuffled
 
     /** The current secondary action to show alongside the play button in the playback bar. */
     val currentBarAction: StateFlow<ActionMode>
@@ -157,9 +162,9 @@ constructor(
         _pagerQueue.value = PagerQueue(queue = queue, index = index)
     }
 
-    override fun onQueueReordered(queue: List<Song>, index: Int, isShuffled: Boolean) {
+    override fun onQueueReordered(queue: List<Song>, index: Int, shuffleState: ShuffleState) {
         L.d("Queue completely changed, updating current song")
-        this.isShuffled.value = isShuffled
+        this.shuffleState.value = shuffleState
 
         pagerCommand.put(PagerCommand(update = UpdateInstructions.Replace(0), scroll = index))
         _pagerQueue.value = PagerQueue(queue = queue, index = index)
@@ -169,12 +174,12 @@ constructor(
         parent: MusicParent?,
         queue: List<Song>,
         index: Int,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) {
         L.d("New playback started, updating playback information")
         song.value = playbackManager.currentSong
         _parent.value = parent
-        this.isShuffled.value = isShuffled
+        this.shuffleState.value = shuffleState
 
         pagerCommand.put(PagerCommand(update = UpdateInstructions.Replace(0), scroll = index))
         _pagerQueue.value = PagerQueue(queue = queue, index = index)
@@ -688,10 +693,14 @@ constructor(
         playbackManager.playing(!playbackManager.progression.isPlaying)
     }
 
-    /** Toggle [isShuffled] (ex. from on to off) */
-    fun toggleShuffled() {
-        L.d("Toggling shuffled state")
-        playbackManager.shuffled(!playbackManager.isShuffled)
+    /**
+     * Cycle to the next [ShuffleState].
+     *
+     * @return The new [ShuffleState].
+     */
+    fun cycleShuffleState(): ShuffleState {
+        L.d("Cycling shuffle state")
+        return playbackManager.cycleShuffleState()
     }
 
     /**
@@ -700,6 +709,10 @@ constructor(
      * @see RepeatMode.increment
      */
     fun toggleRepeatMode() {
+        if (playbackManager.shuffleState == ShuffleState.RANDOM) {
+            L.d("Repeat mode is locked while using random shuffle")
+            return
+        }
         L.d("Toggling repeat mode")
         playbackManager.repeatMode(playbackManager.repeatMode.increment())
     }

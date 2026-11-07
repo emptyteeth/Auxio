@@ -76,6 +76,7 @@ constructor(
             shuffledMapping = shuffledMapping,
             index = playbackState.index,
             songUid = playbackState.songUid,
+            shuffleState = playbackState.shuffleState,
         )
     }
 
@@ -101,6 +102,7 @@ constructor(
                     repeatMode = state.repeatMode,
                     songUid = state.songUid,
                     parentUid = state.parent?.uid,
+                    shuffleState = state.shuffleState,
                 )
 
             // Convert the remaining queue information do their database-specific counterparts.

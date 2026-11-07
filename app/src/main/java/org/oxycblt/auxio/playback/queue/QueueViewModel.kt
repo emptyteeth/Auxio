@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
 import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.auxio.playback.state.QueueChange
+import org.oxycblt.auxio.playback.state.ShuffleState
 import org.oxycblt.auxio.util.Event
 import org.oxycblt.auxio.util.MutableEvent
 import org.oxycblt.musikr.MusicParent
@@ -78,7 +79,7 @@ class QueueViewModel @Inject constructor(private val playbackManager: PlaybackSt
         }
     }
 
-    override fun onQueueReordered(queue: List<Song>, index: Int, isShuffled: Boolean) {
+    override fun onQueueReordered(queue: List<Song>, index: Int, shuffleState: ShuffleState) {
         // Queue changed completely -> Replace queue, update index
         L.d("Queue changed completely, replacing queue and position")
         _queueInstructions.put(UpdateInstructions.Replace(0))
@@ -91,7 +92,7 @@ class QueueViewModel @Inject constructor(private val playbackManager: PlaybackSt
         parent: MusicParent?,
         queue: List<Song>,
         index: Int,
-        isShuffled: Boolean,
+        shuffleState: ShuffleState,
     ) {
         // Entirely new queue -> Replace queue, update index
         L.d("New playback, replacing queue and position")
